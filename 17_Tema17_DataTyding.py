@@ -10,16 +10,13 @@ import pandas as pd
 import os
 
 os.getcwd() # Consultar directorio de trabajo
-os.chdir('/home/jairoescrito/OneDrive/Documentos/TeslaTeach/Python/Python_Basico/Curso_Basico') # Modificar directorio de trabajo
-
+# os.chdir('/home/jairoescrito/OneDrive/Documentos/TeslaTeach/Python/Python_Basico/Curso_Basico') # Modificar directorio de trabajo
 
 Financiero = pd.read_excel(pd.ExcelFile("FINANCIERO_Python.xlsx"), 'VENTAS')
 
+### Data Tyding - Preparación, limpieza y organización de datos ###
 
-
-# Data Tyding - Preparación, limpieza y organización de datos
-
-# 1) Missing Values, NA's (NaN) o Datos faltantes
+# 1) Missing Values, NA's (NaN) o Datos faltantes y modificación de valores
 
 # Los NA's hacen referencia a datos inexistentes o datos no observados durante la recolección de la captura del registro
 # Un NA no es lo mismo que NULL, en el caso del segundo este obedece más a un valor "vació" en el registro
@@ -66,23 +63,7 @@ Financiero.CANTIDAD.fillna(round(Financiero.CANTIDAD.mean()))
 Financiero.CANTIDAD.mode() # Cálculo de la moda
 Financiero.CANTIDAD.median() # Cálculo de la mediana 
 
-# Existen un método más desarrollado bajo el método KNN (K-Nearst Neighbor), mediante un calculo de
-# distancias, localiza los k vecinos y con estos calcula el promedio para determinar el valor del NA
-# Para el caso de las variables categóricas usa el valor más repetido o el más cercano entre los k vecinos
-
-# 2) Trasformaciones en en un conjunto de datos
-# para trabajar en dataframes es necesario llamar, antes de aplicar una función, el atributo .str
-# con el fin de "informar" que la función se va a aplicar a un objeti tipo cadena de texto
-# Se usa cuando se requiere trabajar sobre la cadena y no global sobre el valor
-
-# Eliminar espacios en blanco
-Financiero.ASESOR.str.strip() # Del dataset "llamo" los objetos str (string) y le aplico eliminar espacios en blanco
-# Verificar los datos registrados en una columna
-Financiero.CIUDAD.unique() # Es posible observar la diferencia que existe en los diferentes tipos de 
-# formas que contiene cada "valor" en el conjunto de datos. En primera instancia es necesario eliminar
-# espacios en blanco
-Financiero.CIUDAD.str.strip().unique() #Elimino los espacios en blanco
-
+# Reemplazo de las variables string con imputación de la moda
 # Eliminar duplicados
 Financiero.ASESOR # creo un nuevo dataframe con la columna de asesores 
 Financiero.ASESOR.mode()
@@ -91,20 +72,75 @@ Financiero.ASESOR.isnull().sum()
 Financiero.ASESOR.fillna("ANA MARIA",inplace = True)
 Financiero.ASESOR.drop_duplicates() # Se eliminan los duplicados y se dejan los valores únicos
 
-# Modificación de cadenas
-# Cambiar a minúscula
-Financiero.CIUDAD.str.lower()
-# Cambiar a mayúsculas
-Financiero.CIUDAD.str.upper()
-# Cambiar a mayúscula inicial 
-Financiero.CIUDAD.str.title()
+# Imputación por KNN #
+# Existen un método más desarrollado bajo el método KNN (K-Nearst Neighbor), mediante un calculo de
+# distancias, localiza los k vecinos y con estos calcula el promedio para determinar el valor del NA
+# Para el caso de las variables categóricas usa el valor más repetido o el más cercano entre los k vecinos
 
+# Dato que el dataset es mixto (diferentes tipos de datos: string, float, tiempo) es necesaria una transformación de datos
+# antes de la imputación 
+Financiero.info()
+
+# A) Modificar el tipo de formato de fecha 
+Financiero.FECHA.head()
+Financiero.FECHA = Financiero.FECHA.dt.date
+Financiero.FECHA.head()
+
+# B) Tratar las variables string: estandarización de los datos
+# Es necesario verificar inicialmente si hay diferentes tipos de datos que signifiquen lo mismo
+for i in range(1,len(Financiero.columns)):
+    if Financiero.iloc[:,i].dtype == 'float64': # Consultar el tipo de datos de los valores de la columna
+        continue
+    else:
+        print(Financiero.columns[i],":",Financiero.iloc[:,i].unique())
+del(i) # Eliminar la variable temporal del bucle del entorno de variables
+# Eliminar espacios en blanco
+for i in range(1,len(Financiero.columns)):
+    if Financiero.iloc[:,i].dtype == 'float64': 
+        continue
+    else:
+        Financiero.iloc[:,i] = Financiero.iloc[:,i].str.strip() # Eliminar los espacios en blanco
+del(i) # Eliminar la variable temporal del bucle del entorno de variables
 # Reemplazar valores
-Financiero.CIUDAD = Financiero.CIUDAD.str.strip()
-Financiero.CIUDAD.unique()
-Financiero.CIUDAD.replace("MEDELLIN","MEDELLÍN")
-Financiero.CIUDAD.replace(["MEDELLIN","BOGOTA"],["MEDELLÍN","BOGOTÁ"])
+Financiero.CIUDAD = Financiero.CIUDAD.replace(["MEDELLIN","BOGOTA"],["MEDELLÍN","BOGOTÁ"])
+# Modificación de cadenas
+# Cambiar a minúscula: Financiero.CIUDAD.str.lower()
+# Cambiar a mayúsculas: Financiero.CIUDAD.str.upper()
+for i in range(1,len(Financiero.columns)):
+    if Financiero.iloc[:,i].dtype == 'float64': 
+        continue
+    else:
+        Financiero.iloc[:,i] = Financiero.iloc[:,i].str.title() # Cambiar Texto a tipo Título
+del(i) # Eliminar la variable temporal del bucle del entorno de variables
+# C) Mapear (o categorizar) las variables categóricas a enteros
+Financiero['ASESOR'].unique()
+Financiero['AsesorMap'] = Financiero['ASESOR'].map({'Ana Maria': 1, 'Camila': 2, 'Juliana':3})
+Financiero['CIUDAD'].unique()
+Financiero['CiudadMap'] = Financiero['CIUDAD'].map({'Bogotá':1, 'Medellín':2, 'Cali':3, 'Barranquilla':4, 'Cartagena':5})
+Financiero['CLASIFICACION'].unique()
+Financiero['ClasifMap'] = Financiero['CLASIFICACION'].map({'Nacionales':1, 'Importados':2})
+Financiero['CATEGORIA'].unique()
+Financiero['CategMap'] = Financiero['CATEGORIA'].map({'Foliares':1, 'Coadyuvantes':2, 'Fertirrigación':3, 'Edáficos':4,'Bioestimulantes':5, 'Especiales':6})
+df = Financiero.iloc[:,[8,9,10,11,6,7]] # Dataset con las variables numéricas
 
-# Cambiar los nombres de las columnas
-Financiero.rename(columns=str.title) # Cambio a mayúscula inicial
-Financiero.rename(columns={"FECHA":"Fecha_Venta"}) # Cambio el nombre de una columna
+# D) Ejecutar la imputación
+from sklearn.impute import KNNImputer
+imputer = KNNImputer(n_neighbors=5) # Crear el modelo de imputación con K = 5
+df = pd.DataFrame(imputer.fit_transform(df)) # Imutación de los NaN
+# Los valores imputados son decimales, no obstante la variable "ASESOR" y "CANTIDAD" son de tipo entero
+# El df resultante no tiene nombre de columnas
+df = df.rename(columns={0:'ASESOR',1:'CIUDAD',2:'CLASIFICACION',3:'CATEGORIA',4:'VALOR_U',5:'CANTIDAD'})
+df.ASESOR = round(df.ASESOR)
+df.CANTIDAD = round(df.CANTIDAD)
+del(imputer)
+
+# E) Regresar a los valores originales (del mapeo)
+# Retornar a los valores originales
+df.ASESOR = df['ASESOR'].map({1:'Ana Maria', 2:'Camila',3: 'Juliana'})
+df.CIUDAD = df.CIUDAD.map({1:'Bogotá', 2:'Medellín', 3:'Cali', 4:'Barranquilla', 5:'Cartagena'})
+df.CLASIFICACION = df.CLASIFICACION.map({1:'Nacionales', 2:'Importados'})
+df.CATEGORIA = df.CATEGORIA.map({1:'Foliares', 2:'Coadyuvantes', 3:'Fertirrigación', 4:'Edáficos',5:'Bioestimulantes', 6:'Especiales'})
+#Reconstruyendo el dataset original con los resultados de la imputación
+df_Finan = pd.concat([Financiero.iloc[:,0],df.iloc[:,0:4],Financiero.iloc[:,5],df.iloc[:,4:6]],axis=1)
+df_Finan.to_csv('df_Finan.csv', index=False, header=True,sep=',',decimal='.')
+del(df)
